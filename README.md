@@ -23,7 +23,7 @@ A flexible, feature-rich logging package for Go applications built on top of [ze
 ## Installation
 
 ```bash
-go get github.com/art3mis/gologger
+go get github.com/theblitlabs/gologger
 ```
 
 ## Quick Start
@@ -34,7 +34,7 @@ go get github.com/art3mis/gologger
 package main
 
 import (
-    "github.com/art3mis/gologger"
+    "github.com/theblitlabs/gologger"
 )
 
 func main() {
@@ -64,7 +64,7 @@ func main() {
 package main
 
 import (
-    "github.com/art3mis/gologger"
+    "github.com/theblitlabs/gologger"
 )
 
 func main() {
