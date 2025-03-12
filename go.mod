@@ -1,4 +1,4 @@
-module github.com/art3mis/gologger
+module github.com/theblitlabs/gologger
 
 go 1.21
 
