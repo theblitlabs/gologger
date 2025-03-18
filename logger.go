@@ -145,12 +145,12 @@ func Init(cfg Config) {
 	var output io.Writer = os.Stdout
 
 	if cfg.Output != nil && cfg.Output.File != "" {
-		if err := os.MkdirAll(filepath.Dir(cfg.Output.File), 0755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(cfg.Output.File), 0o755); err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to create log directory: %v\n", err)
 			return
 		}
 
-		file, err := os.OpenFile(cfg.Output.File, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+		file, err := os.OpenFile(cfg.Output.File, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Failed to open log file: %v\n", err)
 			return
@@ -398,7 +398,7 @@ func (w *rotateWriter) rotate() {
 			go cleanupOldLogs(w.config)
 		}
 
-		file, err := os.OpenFile(w.config.File, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644)
+		file, err := os.OpenFile(w.config.File, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644)
 		if err == nil {
 			w.file = file
 		}
@@ -423,7 +423,7 @@ func newLevelWriter(base io.Writer, config *OutputConfig) *levelWriter {
 	levels := []LogLevel{LogLevelDebug, LogLevelInfo, LogLevelWarn, LogLevelError, LogLevelFatal}
 	for _, level := range levels {
 		path := fmt.Sprintf("%s.%s%s", prefix, level, ext)
-		if file, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0644); err == nil {
+		if file, err := os.OpenFile(path, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o644); err == nil {
 			lw.writers[level] = file
 		}
 	}
