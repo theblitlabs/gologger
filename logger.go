@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -42,6 +43,20 @@ const (
 	LogModeJSON   LogMode = "json"
 )
 
+// Environment variable names for configuration
+const (
+	EnvLogLevel      = "LOG_LEVEL"
+	EnvLogMode       = "LOG_MODE"
+	EnvLogFile       = "LOG_FILE"
+	EnvLogMaxSize    = "LOG_MAX_SIZE"
+	EnvLogMaxAge     = "LOG_MAX_AGE"
+	EnvLogMaxBackups = "LOG_MAX_BACKUPS"
+	EnvLogCompress   = "LOG_COMPRESS"
+	EnvLogNoColor    = "LOG_NO_COLOR"
+	EnvLogCaller     = "LOG_CALLER"
+	EnvLogPretty     = "LOG_PRETTY"
+)
+
 type OutputConfig struct {
 	File       string
 	MaxSize    int64
@@ -61,15 +76,104 @@ type Config struct {
 	Fields        map[string]interface{}
 }
 
+// getEnvWithDefault gets an environment variable value or returns the default
+func getEnvWithDefault(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
+// getEnvBool gets a boolean environment variable value
+func getEnvBool(key string, defaultValue bool) bool {
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
+	}
+	return strings.ToLower(value) == "true" || value == "1"
+}
+
+// getEnvInt64 gets an int64 environment variable value
+func getEnvInt64(key string, defaultValue int64) int64 {
+	value := os.Getenv(key)
+	if value == "" {
+		return defaultValue
+	}
+	if parsed, err := parseInt64(value); err == nil {
+		return parsed
+	}
+	return defaultValue
+}
+
+// parseInt64 parses an int64 from string with support for suffixes (K, M, G)
+func parseInt64(value string) (int64, error) {
+	value = strings.ToUpper(strings.TrimSpace(value))
+	multiplier := int64(1)
+
+	switch {
+	case strings.HasSuffix(value, "K"):
+		multiplier = 1024
+		value = strings.TrimSuffix(value, "K")
+	case strings.HasSuffix(value, "M"):
+		multiplier = 1024 * 1024
+		value = strings.TrimSuffix(value, "M")
+	case strings.HasSuffix(value, "G"):
+		multiplier = 1024 * 1024 * 1024
+		value = strings.TrimSuffix(value, "G")
+	}
+
+	base, err := strconv.ParseInt(value, 10, 64)
+	if err != nil {
+		return 0, err
+	}
+	return base * multiplier, nil
+}
+
 func DefaultConfig() Config {
-	return Config{
-		Level:         LogLevelInfo,
-		Pretty:        false,
+	// Get configuration from environment variables
+	level := LogLevel(getEnvWithDefault(EnvLogLevel, string(LogLevelInfo)))
+	mode := LogMode(getEnvWithDefault(EnvLogMode, string(LogModeInfo)))
+	pretty := getEnvBool(EnvLogPretty, false)
+	noColor := getEnvBool(EnvLogNoColor, false)
+	caller := getEnvBool(EnvLogCaller, true)
+
+	config := Config{
+		Level:         level,
+		Pretty:        pretty,
 		TimeFormat:    time.RFC3339,
-		CallerEnabled: true,
-		NoColor:       false,
+		CallerEnabled: caller,
+		NoColor:       noColor,
 		Fields:        make(map[string]interface{}),
 	}
+
+	// Configure output if LOG_FILE is set
+	if logFile := os.Getenv(EnvLogFile); logFile != "" {
+		config.Output = &OutputConfig{
+			File:       logFile,
+			MaxSize:    getEnvInt64(EnvLogMaxSize, 100),                            // Default 100MB
+			MaxAge:     time.Duration(getEnvInt64(EnvLogMaxAge, 7*24)) * time.Hour, // Default 7 days
+			MaxBackups: int(getEnvInt64(EnvLogMaxBackups, 5)),                      // Default 5 backups
+			Compress:   getEnvBool(EnvLogCompress, true),
+			SplitLevel: true,
+		}
+	}
+
+	// Override with mode-specific settings if mode is set
+	if mode != "" {
+		modeConfig := ConfigForMode(mode)
+		if !pretty {
+			modeConfig.Pretty = config.Pretty
+		}
+		if !noColor {
+			modeConfig.NoColor = config.NoColor
+		}
+		if !caller {
+			modeConfig.CallerEnabled = config.CallerEnabled
+		}
+		config = modeConfig
+	}
+
+	return config
 }
 
 func ConfigForMode(mode LogMode) Config {
@@ -134,6 +238,22 @@ func InitWithMode(mode LogMode) {
 func Init(cfg Config) {
 	mu.Lock()
 	defer mu.Unlock()
+
+	// Add hostname to default fields if available
+	if hostname, err := os.Hostname(); err == nil {
+		if cfg.Fields == nil {
+			cfg.Fields = make(map[string]interface{})
+		}
+		cfg.Fields["hostname"] = hostname
+	}
+
+	// Add environment name if available
+	if env := os.Getenv("ENV"); env != "" {
+		if cfg.Fields == nil {
+			cfg.Fields = make(map[string]interface{})
+		}
+		cfg.Fields["env"] = env
+	}
 
 	if cfg.Level == LogLevelDisabled {
 		zerolog.SetGlobalLevel(zerolog.Disabled)
