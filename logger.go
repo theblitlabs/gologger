@@ -180,58 +180,52 @@ func DefaultConfig() Config {
 }
 
 func ConfigForMode(mode LogMode) Config {
+	// Start with default config that reads environment variables
+	config := DefaultConfig()
+
+	// Override with mode-specific settings
 	switch mode {
 	case LogModeDebug:
-		return Config{
-			Level:         LogLevelDebug,
-			Pretty:        true,
-			TimeFormat:    time.RFC3339,
-			CallerEnabled: true,
-			NoColor:       false,
-		}
+		config.Level = LogLevelDebug
+		config.Pretty = true
+		config.TimeFormat = time.RFC3339
+		config.CallerEnabled = true
+		config.NoColor = false
 	case LogModePretty:
-		return Config{
-			Level:         LogLevelInfo,
-			Pretty:        true,
-			TimeFormat:    time.RFC3339,
-			CallerEnabled: true,
-			NoColor:       false,
-		}
+		config.Level = LogLevelInfo
+		config.Pretty = true
+		config.TimeFormat = time.RFC3339
+		config.CallerEnabled = true
+		config.NoColor = false
 	case LogModeInfo:
-		return Config{
-			Level:         LogLevelInfo,
-			Pretty:        false,
-			TimeFormat:    time.RFC3339,
-			CallerEnabled: true,
-			NoColor:       false,
-		}
+		config.Level = LogLevelInfo
+		config.Pretty = false
+		config.TimeFormat = time.RFC3339
+		config.CallerEnabled = true
+		config.NoColor = false
 	case LogModeProd:
-		return Config{
-			Level:         LogLevelInfo,
-			Pretty:        false,
-			TimeFormat:    time.RFC3339Nano,
-			CallerEnabled: false,
-			NoColor:       true,
-		}
+		config.Level = LogLevelInfo
+		config.Pretty = false
+		config.TimeFormat = time.RFC3339Nano
+		config.CallerEnabled = false
+		config.NoColor = true
 	case LogModeTest:
-		return Config{
-			Level:         LogLevelError,
-			Pretty:        false,
-			TimeFormat:    time.RFC3339,
-			CallerEnabled: false,
-			NoColor:       true,
-		}
+		config.Level = LogLevelError
+		config.Pretty = false
+		config.TimeFormat = time.RFC3339
+		config.CallerEnabled = false
+		config.NoColor = true
 	case LogModeJSON:
-		return Config{
-			Level:         LogLevelInfo,
-			Pretty:        false,
-			TimeFormat:    time.RFC3339,
-			CallerEnabled: false,
-			NoColor:       true,
-		}
+		config.Level = LogLevelInfo
+		config.Pretty = false
+		config.TimeFormat = time.RFC3339
+		config.CallerEnabled = false
+		config.NoColor = true
 	default:
-		return DefaultConfig()
+		return config
 	}
+
+	return config
 }
 
 func InitWithMode(mode LogMode) {
