@@ -45,16 +45,17 @@ const (
 
 // Environment variable names for configuration
 const (
-	EnvLogLevel      = "LOG_LEVEL"
-	EnvLogMode       = "LOG_MODE"
-	EnvLogFile       = "LOG_FILE"
-	EnvLogMaxSize    = "LOG_MAX_SIZE"
-	EnvLogMaxAge     = "LOG_MAX_AGE"
-	EnvLogMaxBackups = "LOG_MAX_BACKUPS"
-	EnvLogCompress   = "LOG_COMPRESS"
-	EnvLogNoColor    = "LOG_NO_COLOR"
-	EnvLogCaller     = "LOG_CALLER"
-	EnvLogPretty     = "LOG_PRETTY"
+	EnvLogLevel            = "LOG_LEVEL"
+	EnvLogMode             = "LOG_MODE"
+	EnvLogFile             = "LOG_FILE"
+	EnvLogMaxSize          = "LOG_MAX_SIZE"
+	EnvLogMaxAge           = "LOG_MAX_AGE"
+	EnvLogMaxBackups       = "LOG_MAX_BACKUPS"
+	EnvLogCompress         = "LOG_COMPRESS"
+	EnvLogNoColor          = "LOG_NO_COLOR"
+	EnvLogCaller           = "LOG_CALLER"
+	EnvLogPretty           = "LOG_PRETTY"
+	EnvLogDisableTimestamp = "LOG_DISABLE_TIMESTAMP"
 )
 
 type OutputConfig struct {
@@ -137,14 +138,15 @@ func DefaultConfig() Config {
 	pretty := getEnvBool(EnvLogPretty, false)
 	noColor := getEnvBool(EnvLogNoColor, false)
 	caller := getEnvBool(EnvLogCaller, true)
-
+	disableTimestamp := getEnvBool(EnvLogDisableTimestamp, false)
 	config := Config{
-		Level:         level,
-		Pretty:        pretty,
-		TimeFormat:    time.RFC3339,
-		CallerEnabled: caller,
-		NoColor:       noColor,
-		Fields:        make(map[string]interface{}),
+		Level:            level,
+		Pretty:           pretty,
+		TimeFormat:       time.RFC3339,
+		CallerEnabled:    caller,
+		NoColor:          noColor,
+		DisableTimestamp: disableTimestamp,
+		Fields:           make(map[string]interface{}),
 	}
 
 	// Configure output if LOG_FILE is set
