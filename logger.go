@@ -134,7 +134,6 @@ func parseInt64(value string) (int64, error) {
 func DefaultConfig() Config {
 	// Get configuration from environment variables
 	level := LogLevel(getEnvWithDefault(EnvLogLevel, string(LogLevelInfo)))
-	mode := LogMode(getEnvWithDefault(EnvLogMode, string(LogModeInfo)))
 	pretty := getEnvBool(EnvLogPretty, false)
 	noColor := getEnvBool(EnvLogNoColor, false)
 	caller := getEnvBool(EnvLogCaller, true)
@@ -161,22 +160,17 @@ func DefaultConfig() Config {
 		}
 	}
 
-	// Override with mode-specific settings if mode is set
-	if mode != "" {
-		modeConfig := ConfigForMode(mode)
-		if !pretty {
-			modeConfig.Pretty = config.Pretty
-		}
-		if !noColor {
-			modeConfig.NoColor = config.NoColor
-		}
-		if !caller {
-			modeConfig.CallerEnabled = config.CallerEnabled
-		}
-		config = modeConfig
-	}
-
 	return config
+}
+
+// ConfigWithEnvMode creates a config that respects both LOG_MODE environment variable and passed mode
+func ConfigWithEnvMode() Config {
+	// Check if LOG_MODE environment variable is set
+	envMode := LogMode(getEnvWithDefault(EnvLogMode, ""))
+	if envMode != "" {
+		return ConfigForMode(envMode)
+	}
+	return DefaultConfig()
 }
 
 func ConfigForMode(mode LogMode) Config {
@@ -229,7 +223,11 @@ func ConfigForMode(mode LogMode) Config {
 }
 
 func InitWithMode(mode LogMode) {
-	Init(ConfigForMode(mode))
+	if mode == "" {
+		Init(ConfigWithEnvMode())
+	} else {
+		Init(ConfigForMode(mode))
+	}
 }
 
 func Init(cfg Config) {
