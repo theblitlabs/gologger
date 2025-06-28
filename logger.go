@@ -67,13 +67,14 @@ type OutputConfig struct {
 }
 
 type Config struct {
-	Level         LogLevel
-	Pretty        bool
-	TimeFormat    string
-	CallerEnabled bool
-	NoColor       bool
-	Output        *OutputConfig
-	Fields        map[string]interface{}
+	Level            LogLevel
+	Pretty           bool
+	TimeFormat       string
+	CallerEnabled    bool
+	NoColor          bool
+	DisableTimestamp bool
+	Output           *OutputConfig
+	Fields           map[string]interface{}
 }
 
 // getEnvWithDefault gets an environment variable value or returns the default
@@ -288,6 +289,16 @@ func Init(cfg Config) {
 	}
 
 	if cfg.Pretty {
+		partsOrder := []string{
+			zerolog.LevelFieldName,
+			zerolog.CallerFieldName,
+			zerolog.MessageFieldName,
+			"device_id",
+		}
+		if !cfg.DisableTimestamp {
+			partsOrder = append([]string{zerolog.TimestampFieldName}, partsOrder...)
+		}
+
 		consoleWriter := zerolog.ConsoleWriter{
 			Out:        os.Stdout,
 			TimeFormat: cfg.TimeFormat,
@@ -333,13 +344,7 @@ func Init(cfg Config) {
 				t := fmt.Sprint(i)
 				return colorize(t, dim+gray)
 			},
-			PartsOrder: []string{
-				zerolog.TimestampFieldName,
-				zerolog.LevelFieldName,
-				zerolog.CallerFieldName,
-				zerolog.MessageFieldName,
-				"device_id",
-			},
+			PartsOrder: partsOrder,
 			PartsExclude: []string{
 				"query",
 				"referer",
@@ -370,7 +375,10 @@ func Init(cfg Config) {
 
 	zerolog.TimeFieldFormat = cfg.TimeFormat
 
-	logCtx := zerolog.New(output).With().Timestamp()
+	logCtx := zerolog.New(output).With()
+	if !cfg.DisableTimestamp {
+		logCtx = logCtx.Timestamp()
+	}
 	if cfg.CallerEnabled {
 		logCtx = logCtx.Caller()
 	}
